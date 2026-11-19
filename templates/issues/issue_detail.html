@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}{{ issue.title }} — CivicPulse{% endblock %}
+
+{% block content %}
+<nav class="crumb" aria-label="Breadcrumb">
+  <a href="{% url 'home' %}">All issues</a> / <span>#{{ issue.pk }}</span>
+</nav>
+
+<article class="detail">
+  <div class="detail-main">
+    <header class="detail-head" style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+      <div>
+        <h1>{{ issue.title }}</h1>
+        <div class="detail-status">
+          <span class="lane lane--{{ issue.status }}" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="status-text status-text--{{ issue.status }}">{{ issue.get_status_display }}</span>
+          {% if issue.is_overdue %}
+            <span class="badge badge--overdue">SLA OVERDUE</span>
+          {% endif %}
+          {% if issue.citizen_verified %}
+            <span class="badge badge--verified">Citizen Verified Fixed</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a href="{% url 'issue_poster' issue.pk %}" target="_blank" class="btn btn--small btn--ghost">Print QR Flyer</a>
+        {% if user.is_authenticated %}
+          <button type="button" id="upvote-btn"
+                  data-url="{% url 'toggle_upvote' issue.pk %}"
+                  data-csrf="{{ csrf_token }}"
+                  class="btn btn--small {% if not user_upvoted %}btn--ghost{% endif %}">
+            ▲ <span id="upvote-label">{% if user_upvoted %}Upvoted{% else %}I'm affected{% endif %}</span> (<span id="upvote-count">{{ issue.upvote_count }}</span>)
+          </button>
+        {% else %}
+          <a class="btn btn--small btn--ghost" href="{% url 'login' %}?next={{ request.path }}">▲ Upvote ({{ issue.upvote_count }})</a>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if issue.photo and issue.resolution_photo %}
+      <div class="before-after">
+        <div>
+          <span class="ba-label">Before (Reported)</span>
+          <img class="detail-photo" src="{{ issue.photo.url }}" alt="Before photo">
+        </div>
+        <div>
+          <span class="ba-label ba-label--after">After (Resolution Proof)</span>
+          <img class="detail-photo" src="{{ issue.resolution_photo.url }}" alt="Resolution proof photo">
+        </div>
+      </div>
+    {% elif issue.photo %}
+      <img class="detail-photo" src="{{ issue.photo.url }}" alt="Photo attached to {{ issue.title }}">
+    {% elif issue.resolution_photo %}
+      <span class="ba-label ba-label--after">Resolution Proof</span>
+      <img class="detail-photo" src="{{ issue.resolution_photo.url }}" alt="Resolution proof photo">
+    {% endif %}
+
+    <p class="detail-desc">{{ issue.description|linebreaksbr }}</p>
+
+    {% if user == issue.reported_by and issue.status == 'resolved' and not issue.citizen_verified %}
+      <div class="notice notice--success" style="margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <span><strong>Rate & verify this completed repair:</strong></span>
+        <form method="post" action="{% url 'verify_resolution' issue.pk %}" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+          {% csrf_token %}
+          <select name="rating" style="padding:0.35rem; border-radius:4px; border:1px solid var(--border);">
+            <option value="5">5 ★ Excellent</option>
+            <option value="4">4 ★ Good</option>
+            <option value="3">3 ★ Acceptable</option>
+          </select>
+          <button type="submit" name="action" value="confirm" class="btn btn--small">Confirm Fixed</button>
+          <button type="submit" name="action" value="reopen" class="btn btn--small btn--ghost btn--danger">Reopen Issue</button>
+        </form>
+      </div>
+    {% endif %}
+
+    <section class="section" aria-labelledby="timeline-h">
+      <h2 id="timeline-h" style="margin-bottom:0.5rem;">Status history</h2>
+      {% if updates %}
+        <ol class="timeline">
+          {% for u in updates %}
+            <li>
+              <div class="when">{{ u.timestamp|date:"M j, Y · H:i" }}{% if u.updated_by %} — {{ u.updated_by.first_name|default:u.updated_by.username }}{% endif %}</div>
+              <div><strong>{{ u.get_old_status_display }}</strong> → <strong>{{ u.get_new_status_display }}</strong></div>
+              {% if u.remarks %}<p class="muted">{{ u.remarks }}</p>{% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="muted" style="margin-bottom:1.5rem;">No status changes recorded yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="section" aria-labelledby="comments-h">
+      <h2 id="comments-h" style="margin-bottom:0.5rem;">Comments ({{ comments|length }})</h2>
+      {% for c in comments %}
+        <div class="comment">
+          <div class="when">{{ c.user.first_name|default:c.user.username }} · {{ c.created_at|date:"M j, Y · H:i" }}</div>
+          <p>{{ c.text|linebreaksbr }}</p>
+        </div>
+      {% empty %}
+        <p class="muted" style="margin-bottom:1rem;">No comments yet.</p>
+      {% endfor %}
+
+      {% if user.is_authenticated %}
+        <form method="post" style="margin-top:1rem;">
+          {% csrf_token %}
+          <div class="field {% if comment_form.text.errors %}field--error{% endif %}">
+            {{ comment_form.text.label_tag }}
+            {{ comment_form.text }}
+            {% if comment_form.text.errors %}<div class="error">{{ comment_form.text.errors.0 }}</div>{% endif %}
+          </div>
+          <button type="submit" class="btn btn--small">Post comment</button>
+        </form>
+      {% else %}
+        <p class="muted" style="margin-top:1rem;"><a href="{% url 'login' %}?next={{ request.path }}">Log in</a> to add a comment.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="detail-side">
+    <dl class="facts">
+      <dt>Urgency Score</dt>
+      <dd>{{ issue.priority_score }} pts ({{ issue.priority_level|upper }})</dd>
+      <dt>Category</dt>
+      <dd>{{ issue.category.name }} (SLA: {{ issue.category.sla_hours }}h)</dd>
+      <dt>Department</dt>
+      <dd>{% if issue.department %}{{ issue.department.name }}{% else %}Unassigned{% endif %}</dd>
+      <dt>Location</dt>
+      <dd>{{ issue.location }}</dd>
+      {% if issue.due_at and issue.status != 'resolved' %}
+        <dt>SLA Target Deadline</dt>
+        <dd {% if issue.is_overdue %}style="color:var(--danger); font-weight:700;"{% endif %}>
+          {{ issue.due_at|date:"M j, Y · H:i" }}
+        </dd>
+      {% endif %}
+      <dt>Reported by</dt>
+      <dd>{{ issue.reported_by.first_name|default:issue.reported_by.username }}</dd>
+      <dt>Reported on</dt>
+      <dd>{{ issue.created_at|date:"M j, Y" }}</dd>
+      {% if issue.resolved_at %}
+        <dt>Resolved on</dt>
+        <dd>{{ issue.resolved_at|date:"M j, Y" }} ({{ issue.days_open }}d)</dd>
+      {% endif %}
+    </dl>
+
+    {% if issue.latitude and issue.longitude %}
+      <div id="detail-mini-map" data-lat="{{ issue.latitude }}" data-lng="{{ issue.longitude }}"
+           style="height:170px; border-radius:6px; border:1px solid var(--border); margin-top:0.5rem;"></div>
+    {% endif %}
+
+    {% if can_edit or can_manage %}
+      <div class="side-actions">
+        {% if can_manage %}
+          <a class="btn btn--small" href="{% url 'manage_issue' issue.pk %}">Update status / proof</a>
+        {% endif %}
+        {% if can_edit %}
+          <a class="btn btn--small btn--ghost" href="{% url 'edit_issue' issue.pk %}">Edit report</a>
+          <a class="btn btn--small btn--ghost btn--danger" href="{% url 'delete_issue' issue.pk %}">Delete</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </aside>
+</article>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Register — CivicPulse{% endblock %}
+
+{% block content %}
+<div class="form-page form-page--narrow">
+  <h1>Create an account</h1>
+  <p class="lead">Residents register here to report issues and follow up on them.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="field {% if field.errors %}field--error{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="error">{{ field.errors.0 }}</div>{% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="form-actions">
+      <button type="submit" class="btn">Create account</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

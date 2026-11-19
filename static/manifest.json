@@ -1,0 +1,16 @@
+{
+  "name": "CivicPulse — Smart City Governance & SLA OS",
+  "short_name": "CivicPulse",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f4c81",
+  "description": "AI-Assisted Civic Issue Reporting, Geospatial Heatmap & SLA Command Platform",
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
