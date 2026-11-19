@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Delete report — CivicPulse{% endblock %}
+
+{% block content %}
+<div class="form-page form-page--narrow">
+  <h1>Delete this report?</h1>
+  <p class="lead"><strong>{{ issue.title }}</strong> will be removed permanently.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn--danger-solid">Delete report</button>
+      <a class="btn btn--ghost" href="{{ issue.get_absolute_url }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

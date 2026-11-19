@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}About — CivicPulse{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <h1>About CivicPulse</h1>
+  <p class="lead">A crowdsourced neighborhood issue reporting and municipal resolution ledger.</p>
+  <p style="margin-bottom:1rem;">Residents log street-level infrastructure problems—potholes, broken streetlights, overflowing waste, or water leaks—with a photo and address. Reports automatically route to the responsible municipal department and remain publicly visible through every status transition until resolved.</p>
+  <p><a class="btn" href="{% url 'home' %}">Browse active issues</a></p>
+</div>
+{% endblock %}

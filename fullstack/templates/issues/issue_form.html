@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit report{% else %}Report an issue{% endif %} — CivicPulse{% endblock %}
+
+{% block content %}
+<div class="form-page">
+  <div class="form-card">
+    <h1>{% if mode == 'edit' %}Edit report{% else %}Log a Civic Issue{% endif %}</h1>
+    <p class="lead">Speak or type your issue—AI auto-triage routes it, Computer Vision inspects uploaded photos, and map pins auto-fill addresses.</p>
+
+    <div id="duplicate-alert" class="notice notice--error" style="display:none; margin-bottom:1rem;"></div>
+    <div id="smart-triage-banner" class="notice notice--success" style="display:none; margin-bottom:1rem;"></div>
+    <div id="vision-ai-banner" class="notice" style="display:none; margin-bottom:1rem;"></div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="field {% if form.title.errors %}field--error{% endif %}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+          <label for="{{ form.title.id_for_label }}" style="margin:0;">{{ form.title.label }}</label>
+          <button type="button" class="btn btn--small btn--ghost" id="voice-btn">🎙️ Voice Dictate</button>
+        </div>
+        <input type="text" name="title" id="{{ form.title.id_for_label }}" value="{{ form.title.value|default:'' }}"
+               placeholder="e.g., Deep pothole near Sector 18 Metro Gate"
+               data-dup-check="{% url 'check_duplicates' %}"
+               data-classify-url="{% url 'smart_classify' %}" required>
+        {% for err in form.title.errors %}<div class="error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div class="field {% if form.category.errors %}field--error{% endif %}">
+        <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+        {{ form.category }}
+        {% for err in form.category.errors %}<div class="error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div class="field {% if form.location.errors %}field--error{% endif %}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+          <label for="{{ form.location.id_for_label }}" style="margin:0;">{{ form.location.label }}</label>
+          <button type="button" class="btn btn--small btn--ghost" id="gps-btn">📍 Use My GPS</button>
+        </div>
+        {{ form.location }}
+        {{ form.latitude }}
+        {{ form.longitude }}
+        <div id="picker-map" style="height:260px; margin-top:0.65rem; border-radius:8px; border:1px solid var(--border);"></div>
+        <div class="hint" id="coords-hint">Click anywhere on the map to drop a pin &amp; auto-fill the street address.</div>
+        {% for err in form.location.errors %}<div class="error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div class="field {% if form.description.errors %}field--error{% endif %}">
+        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+        {{ form.description }}
+        {% for err in form.description.errors %}<div class="error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div class="field {% if form.photo.errors %}field--error{% endif %}">
+        <label for="{{ form.photo.id_for_label }}">Photo Evidence (AI Vision Verified, Max 5MB)</label>
+        <div class="dropzone" id="photo-dropzone">
+          {{ form.photo }}
+          <p class="muted" style="font-size:0.85rem; margin-top:0.4rem;">JPG, PNG, or WEBP · Client-side Vision AI checks lighting &amp; clarity</p>
+          <img id="photo-preview" src="" alt="Preview" style="display:none; max-height:180px; margin:0.75rem auto 0; border-radius:6px;">
+        </div>
+        {% for err in form.photo.errors %}<div class="error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn">{% if mode == 'edit' %}Save Changes{% else %}Submit Civic Report{% endif %}</button>
+        <a class="btn btn--ghost" href="{% if mode == 'edit' %}{{ issue.get_absolute_url }}{% else %}{% url 'home' %}{% endif %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
